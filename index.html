@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jamuna's Growth Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root{
+    --paper:#F7F2EA; --card:#FFFDFA; --ink:#2D2A25; --ink-soft:#847C6E;
+    --sage:#6E8F72; --sage-deep:#3F5C43; --sage-bg:#E9F0E9;
+    --clay:#B5677A; --clay-bg:#F6E8EB;
+    --plum:#5B4B66; --plum-bg:#EDE8F0;
+    --gold:#C98A2E; --gold-bg:#F7EAD3;
+    --border:#E4DCCF;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;overflow-x:hidden}
+  h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;margin:0}
+  .num{font-family:'IBM Plex Mono',monospace}
+  .app{display:flex;min-height:100vh;position:relative}
+  .sidebar{width:210px;background:var(--card);border-right:1px solid var(--border);padding:24px 12px;flex-shrink:0;z-index:50}
+  .brand{font-family:'Fraunces',serif;font-size:19px;padding:0 12px 20px;line-height:1.3}
+  .brand span{display:block;font-family:'Inter',sans-serif;font-size:12px;color:var(--ink-soft);font-weight:400}
+  .nav-btn{display:block;width:100%;text-align:left;padding:11px 12px;border:none;background:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink-soft);cursor:pointer;margin-bottom:2px}
+  .nav-btn:hover{background:var(--sage-bg)}
+  .nav-btn.active{background:var(--sage);color:#fff;font-weight:500}
+  .main{flex:1;padding:28px 32px;max-width:1000px;width:100%}
+  .section{display:none}
+  .section.active{display:block}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;gap:12px}
+  .top p{color:var(--ink-soft);margin:4px 0 0;font-size:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:26px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px}
+  .card.accent-sage{border-left:4px solid var(--sage)}
+  .card.accent-plum{border-left:4px solid var(--plum)}
+  .card.accent-clay{border-left:4px solid var(--clay)}
+  .card.accent-gold{border-left:4px solid var(--gold)}
+  .metric-label{font-size:12px;color:var(--ink-soft);margin-bottom:6px;font-weight:500}
+  .metric-value{font-size:30px;font-weight:600;font-family:'Fraunces',serif}
+  .metric-sub{font-size:12px;color:var(--ink-soft);margin-top:4px}
+  .bar-track{height:9px;background:var(--border);border-radius:6px;overflow:hidden;margin-top:8px}
+  .bar-fill{height:100%;background:var(--sage);border-radius:6px;transition:width .4s}
+  .row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .row:last-child{border-bottom:none}
+  .row label{flex:1;font-size:14px}
+  .row input[type=checkbox]{width:18px;height:18px;accent-color:var(--sage)}
+  input[type=text],input[type=number],input[type=date],input[type=range],select,textarea{font-family:'Inter',sans-serif;font-size:14px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--ink)}
+  button.btn{font-family:'Inter',sans-serif;font-size:13px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;color:var(--ink)}
+  button.btn.primary{background:var(--sage);color:#fff;border:none}
+  .pill{display:inline-block;font-size:11px;padding:3px 10px;border-radius:999px;font-weight:500}
+  .pill.sage{background:var(--sage-bg);color:var(--sage-deep)}
+  .pill.clay{background:var(--clay-bg);color:#7A3A48}
+  .pill.plum{background:var(--plum-bg);color:var(--plum)}
+  .pill.gold{background:var(--gold-bg);color:var(--gold)}
+  .heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}
+  .hcell{aspect-ratio:1;border-radius:6px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--ink-soft)}
+  .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .between{display:flex;justify-content:space-between;align-items:center}
+  .stage-badge{font-size:12px;color:var(--ink-soft)}
+  .topic-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;position:relative;overflow:hidden}
+  .topic-head{display:flex;justify-content:space-between;align-items:baseline}
+  .stage-list{margin-top:10px}
+  .stage-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;color:var(--ink-soft)}
+  .stage-item.done{color:var(--sage-deep);text-decoration:line-through}
+  .chart-wrap{position:relative;height:220px;margin-top:10px}
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .3s;z-index:200;pointer-events:none}
+  .toast.show{opacity:1}
+  .confetti-piece{position:absolute;width:8px;height:8px;top:-10px;border-radius:2px;animation:fall 1.6s ease-in forwards}
+  @keyframes fall{to{transform:translateY(140px) rotate(360deg);opacity:0}}
+  .celebrate-msg{background:var(--sage-bg);color:var(--sage-deep);border-radius:8px;padding:8px 12px;font-size:13px;margin-top:8px}
+  .encourage-msg{background:var(--gold-bg);color:var(--gold);border-radius:8px;padding:8px 12px;font-size:13px;margin-top:8px}
+  .reminder-banner{background:var(--clay-bg);color:#7A3A48;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:16px}
+  .hamburger{display:none;position:fixed;top:14px;left:14px;z-index:100;background:var(--card);border:1px solid var(--border);border-radius:10px;width:40px;height:40px;font-size:18px;cursor:pointer}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:40}
+  .overlay.show{display:block}
+  @media (max-width: 768px){
+    .hamburger{display:block}
+    .sidebar{position:fixed;top:0;left:0;bottom:0;transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 0 24px rgba(0,0,0,.15)}
+    .sidebar.open{transform:translateX(0)}
+    .main{padding:70px 16px 24px}
+    .grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  }
+</style>
+</head>
+<body>
+<button class="hamburger" onclick="toggleDrawer()">☰</button>
+<div class="overlay" id="overlay" onclick="toggleDrawer()"></div>
+<div class="app">
+  <div class="sidebar" id="sidebar">
+    <div class="brand">Jamuna<span>Growth tracker</span></div>
+    <button class="nav-btn active" data-s="home">🏡 Home</button>
+    <button class="nav-btn" data-s="schedule">📅 Daily schedule</button>
+    <button class="nav-btn" data-s="health">💚 Health</button>
+    <button class="nav-btn" data-s="fullstack">💻 Full stack</button>
+    <button class="nav-btn" data-s="aptitude">💬 Aptitude & soft skills</button>
+    <button class="nav-btn" data-s="academics">🎓 Academics</button>
+    <button class="nav-btn" data-s="dsa">🧩 DSA</button>
+    <button class="nav-btn" data-s="ml">🤖 ML / data science</button>
+    <button class="nav-btn" data-s="finance">💰 Finance</button>
+    <button class="nav-btn" data-s="career">🚀 Career pipeline</button>
+    <button class="nav-btn" data-s="review">📝 Weekly report</button>
+  </div>
+
+  <div class="main">
+
+    <div id="home" class="section active">
+      <div class="top"><div><h1>Jammmmm returns!</h1><p id="todayStr"></p><p id="greetingMsg" style="color:var(--sage-deep);font-weight:500;margin-top:6px"></p></div></div>
+      <div id="homeReminder"></div>
+      <div id="milestoneMsg"></div>
+
+      <div class="card accent-gold" style="margin-bottom:14px">
+        <span class="metric-label">Current focus period</span>
+        <textarea id="focusText" rows="2" style="width:100%;margin-top:8px" placeholder="e.g. Jul 9 - Jul 31: Arrays+Strings, HTML/CSS, NumPy basics"></textarea>
+        <button class="btn primary" style="margin-top:8px" onclick="saveFocus()">Save focus</button>
+      </div>
+
+      <div class="card accent-plum" style="margin-bottom:20px">
+        <span class="metric-label">Your reason — why you're doing all this</span>
+        <textarea id="reasonText" rows="2" style="width:100%;margin-top:8px" placeholder="Write it once, in your own words. It'll sit here quietly."></textarea>
+        <button class="btn primary" style="margin-top:8px" onclick="saveReason()">Save</button>
+      </div>
+
+      <div class="grid" id="homeMetrics"></div>
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="between"><h3>7-day consistency</h3><span class="stage-badge" id="streakLabel"></span></div>
+        <div class="heatmap" id="heatmap"></div>
+        <p class="metric-sub" style="margin-top:8px">Days marked as rest don't break your streak — they're just skipped.</p>
+      </div>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="card"><h3 style="margin-bottom:6px">DSA problems over time</h3><div class="chart-wrap"><canvas id="dsaChart" role="img" aria-label="Line chart of DSA problems solved over time"></canvas></div></div>
+        <div class="card"><h3 style="margin-bottom:6px">ML videos over time</h3><div class="chart-wrap"><canvas id="mlChart" role="img" aria-label="Line chart of ML videos watched over time"></canvas></div></div>
+      </div>
+
+      <div class="card" style="margin-top:20px">
+        <h3>Your growth stem</h3>
+        <p class="metric-sub">One leaf for every 7-day streak of following your schedule.</p>
+        <svg id="growthSvg" viewBox="0 0 300 140" style="width:100%;max-width:320px;margin-top:10px"></svg>
+      </div>
+    </div>
+
+    <div id="schedule" class="section">
+      <div class="top"><h1>Daily schedule</h1><p>Tick off today's blocks.</p></div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="row" style="border-bottom:none">
+          <label>Mark today as a rest day</label>
+          <input type="checkbox" id="restToggle" onchange="toggleRest()">
+        </div>
+      </div>
+      <div class="card" id="scheduleCard"></div>
+      <div class="card" style="margin-top:14px">
+        <span class="metric-label">How closely did today match your plan?</span>
+        <input type="range" min="1" max="5" id="dayMatchSlider" style="width:100%;margin-top:8px" oninput="setDayMatchLive(this.value)" onchange="setDayMatch(this.value)">
+        <div class="between"><span class="metric-sub">Not really</span><span class="num" id="dayMatchVal"></span><span class="metric-sub">Exactly</span></div>
+      </div>
+    </div>
+
+    <div id="health" class="section">
+      <div class="top"><h1>Health and wellness</h1><p>Sleep, workout, water.</p></div>
+      <div class="card" id="healthCard"></div>
+      <div id="waterMsg"></div>
+
+      <div class="card" style="margin-top:16px">
+        <h3 style="margin-bottom:10px">Menstrual cycle</h3>
+        <div id="periodCard"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3 style="margin-bottom:10px">Screen time</h3>
+        <div id="screenCard"></div>
+        <div id="screenMsg"></div>
+      </div>
+    </div>
+
+    <div id="fullstack" class="section">
+      <div class="top"><h1>Full stack</h1><p>Type what you're studying right now — it'll estimate a timeline.</p></div>
+      <div class="flex" style="margin-bottom:14px">
+        <input type="text" id="fsNewTopic" placeholder="e.g. HTML, React hooks, Spring Boot auth">
+        <button class="btn primary" onclick="addSmartTopic('fullstack')">Add & estimate</button>
+      </div>
+      <div id="fsTopics"></div>
+      <div class="card" style="margin-top:18px">
+        <div class="between"><h3>Projects</h3></div>
+        <div id="fsProjects"></div>
+        <div class="flex" style="margin-top:10px">
+          <input type="text" id="newProjName" placeholder="Project name">
+          <input type="text" id="newProjLink" placeholder="Link (optional)">
+          <button class="btn primary" onclick="addProject()">Add project</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="aptitude" class="section">
+      <div class="top"><h1>Aptitude &amp; soft skills</h1><p>Type what you're practicing — it'll estimate a timeline.</p></div>
+      <div class="flex" style="margin-bottom:14px">
+        <input type="text" id="apNewTopic" placeholder="e.g. Time & Work, Vocabulary building">
+        <button class="btn primary" onclick="addSmartTopic('aptitude')">Add & estimate</button>
+      </div>
+      <div id="apTopics"></div>
+      <div class="card" style="margin-top:18px">
+        <div class="between"><h3>Reading log</h3></div>
+        <div id="readingList"></div>
+        <div class="flex" style="margin-top:10px">
+          <input type="text" id="newReadTitle" placeholder="What you read">
+          <input type="text" id="newReadNote" placeholder="Takeaway (optional)">
+          <button class="btn primary" onclick="addReading()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="academics" class="section">
+      <div class="top"><h1>Academics</h1><p>5th semester subjects and targets.</p></div>
+      <div class="grid">
+        <div class="card"><label class="metric-label">Current CGPA</label><input type="number" step="0.01" id="cgpaCurrent" style="width:100%;margin-top:6px"></div>
+        <div class="card"><label class="metric-label">Target CGPA</label><input type="number" step="0.01" id="cgpaTarget" style="width:100%;margin-top:6px"></div>
+        <div class="card"><label class="metric-label">SGPA target</label><input type="text" id="sgpaTarget" style="width:100%;margin-top:6px"></div>
+        <div class="card"><label class="metric-label">Attendance %</label><input type="number" id="attendance" style="width:100%;margin-top:6px"></div>
+      </div>
+      <div class="card"><h3 style="margin-bottom:10px">Subjects this semester</h3><div id="subjectsList"></div></div>
+      <button class="btn" style="margin-top:8px" onclick="saveAcademics()">Save academics</button>
+    </div>
+
+    <div id="dsa" class="section">
+      <div class="top"><h1>DSA — Striver A2Z + LeetCode</h1><p id="dsaSummary"></p></div>
+      <div class="card" id="dsaCard"></div>
+      <div class="flex" style="margin-top:14px">
+        <input type="text" id="newTopicName" placeholder="Add a topic (e.g. Graphs)">
+        <input type="number" id="newTopicTotal" placeholder="Sheet problems" style="width:130px">
+        <button class="btn primary" onclick="addTopic()">Add topic</button>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <div class="between"><h3>Contest log</h3></div>
+        <div id="contestList"></div>
+        <div class="flex" style="margin-top:10px">
+          <input type="text" id="newContestPlatform" placeholder="Platform (LeetCode/Codeforces)">
+          <input type="text" id="newContestRank" placeholder="Rank / problems solved">
+          <button class="btn primary" onclick="addContest()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="ml" class="section">
+      <div class="top"><h1>ML / Data science</h1><p>Type what you're studying right now — it'll estimate a timeline.</p></div>
+      <div class="card accent-plum" style="margin-bottom:16px">
+        <div class="between"><span class="metric-label">Videos watched (overall plan)</span><span class="num" id="mlCount"></span></div>
+        <div class="bar-track"><div class="bar-fill" id="mlBar" style="background:var(--plum)"></div></div>
+        <div class="flex" style="margin-top:12px">
+          <button class="btn" onclick="mlAdjust(-1)">−1</button>
+          <button class="btn primary" onclick="mlAdjust(1)">+1 video</button>
+          <button class="btn" onclick="mlAdjust(5)">+5 (today's set)</button>
+        </div>
+      </div>
+      <div class="flex" style="margin-bottom:14px">
+        <input type="text" id="mlNewTopic" placeholder="e.g. Pandas, Linear Regression">
+        <button class="btn primary" onclick="addSmartTopic('ml')">Add & estimate</button>
+      </div>
+      <div id="mlTopics"></div>
+    </div>
+
+    <div id="finance" class="section">
+      <div class="top"><h1>Finance</h1><p>Log what you spent, on what, and when.</p></div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="flex">
+          <input type="date" id="newExpDate">
+          <input type="text" id="newExpDesc" placeholder="What was it for?">
+          <input type="number" id="newExpAmt" placeholder="Amount ₹" style="width:110px">
+          <button class="btn primary" onclick="addExpense()">Add</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="between" style="margin-bottom:10px"><h3>This month</h3><span class="num" id="financeMonthTotal"></span></div>
+        <div id="financeList"></div>
+      </div>
+      <div class="card accent-sage" style="margin-top:14px">
+        <h3 style="margin-bottom:10px">Savings goal</h3>
+        <div class="flex">
+          <input type="text" id="goalName" placeholder="What for?">
+          <input type="number" id="goalTarget" placeholder="Target ₹" style="width:110px">
+        </div>
+        <div class="flex" style="margin-top:8px">
+          <label class="metric-sub">Saved so far ₹</label>
+          <input type="number" id="goalSaved" style="width:110px">
+          <button class="btn primary" onclick="saveGoal()">Save</button>
+        </div>
+        <div id="goalProgress" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div id="career" class="section">
+      <div class="top"><h1>Career pipeline</h1><p>Resume, GitHub, LinkedIn, applications.</p></div>
+      <div class="grid">
+        <div class="card"><label class="metric-label">Resume version</label><input type="number" id="resumeVersion" style="width:100%;margin-top:6px"></div>
+        <div class="card"><label class="metric-label">GitHub commits this week</label><input type="number" id="ghCommits" style="width:100%;margin-top:6px"></div>
+        <div class="card"><label class="metric-label">LinkedIn posts this month</label><input type="number" id="liPosts" style="width:100%;margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <div class="between"><h3>Internship applications</h3></div>
+        <div id="applicationsList"></div>
+        <div class="flex" style="margin-top:10px">
+          <input type="text" id="newAppCo" placeholder="Company">
+          <select id="newAppStatus"><option>Applied</option><option>Interview</option><option>Offer</option><option>Rejected</option></select>
+          <button class="btn primary" onclick="addApplication()">Add</button>
+        </div>
+      </div>
+      <button class="btn" style="margin-top:8px" onclick="saveCareer()">Save career fields</button>
+
+      <div class="card" style="margin-top:18px">
+        <div class="between"><h3>Networking</h3></div>
+        <div id="networkingList"></div>
+        <div class="flex" style="margin-top:10px">
+          <input type="text" id="newNetPerson" placeholder="Who you talked to">
+          <input type="text" id="newNetNote" placeholder="Context / referral / outcome">
+          <button class="btn primary" onclick="addNetworking()">Add</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <div class="between"><h3>Certifications & courses</h3></div>
+        <div id="certList"></div>
+        <div class="flex" style="margin-top:10px">
+          <input type="text" id="newCertName" placeholder="Certification / course name">
+          <button class="btn primary" onclick="addCert()">Add</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <div class="between"><h3>Interview practice log</h3></div>
+        <div id="interviewList"></div>
+        <div class="flex" style="margin-top:10px">
+          <input type="text" id="newIntType" placeholder="Type (mock / question practiced)">
+          <input type="text" id="newIntNote" placeholder="How it went">
+          <button class="btn primary" onclick="addInterview()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="review" class="section">
+      <div class="top"><h1>Weekly report</h1><p>Your reflection, side by side with the tracker's own summary.</p></div>
+      <div id="reviewReminder"></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;align-items:start">
+        <div class="card">
+          <h3 style="margin-bottom:8px">Your report</h3>
+          <textarea id="reviewText" rows="6" style="width:100%" placeholder="What worked this week? What slipped?"></textarea>
+          <button class="btn primary" style="margin-top:10px" onclick="addReview()">Save this week's review</button>
+          <div id="reviewsList" style="margin-top:14px"></div>
+        </div>
+        <div class="card accent-sage">
+          <h3 style="margin-bottom:8px">Tracker's report</h3>
+          <div id="autoReport"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div class="toast" id="toast">Saved</div>
+
+<script>
+const STORAGE_KEY = 'jamuna-tracker-data-v2';
+const todayKey = () => new Date().toISOString().slice(0,10);
+const monthKey = () => todayKey().slice(0,7);
+let data = null;
+let dsaChart=null, mlChart=null;
+let greetingMessage='', milestoneMessage='', milestoneJustHit=false;
+
+function computeGreetingOnce(){
+  const today = todayKey();
+  if(!data.lastVisit){
+    greetingMessage = "First day here — glad you're starting this.";
+  } else if(data.lastVisit === today){
+    greetingMessage = '';
+  } else {
+    let awayDays=0, restfulDays=0;
+    let d = new Date(data.lastVisit); d.setDate(d.getDate()+1);
+    const end = new Date(today);
+    while(d < end){
+      const key = d.toISOString().slice(0,10);
+      if(data.schedule.restDays[key] || data.health.periodDays[key]) restfulDays++; else awayDays++;
+      d.setDate(d.getDate()+1);
+    }
+    if(awayDays===0 && restfulDays>0) greetingMessage = "Good to see you — looks like you rested well. Ready when you are.";
+    else if(awayDays<=1) greetingMessage = "Good to see you again.";
+    else if(awayDays<=3) greetingMessage = "It's been a few days — welcome back, no pressure, let's just pick up from here.";
+    else greetingMessage = "Haven't seen you in a while — hope you're doing okay. Whenever you're ready, I'm here.";
+  }
+  data.lastVisit = today;
+}
+function computeMilestoneOnce(){
+  const leaves = Math.min(6, Math.floor(getStreakDays()/7));
+  if(leaves > (data.lastLeafCount||0)){
+    milestoneMessage = `New milestone — ${leaves*7}-day streak! That's genuinely impressive consistency.`;
+    data.lastLeafCount = leaves; milestoneJustHit = true;
+  } else {
+    milestoneMessage = '';
+    if(leaves < (data.lastLeafCount||0)) data.lastLeafCount = leaves;
+  }
+}
+function celebrateElement(elId){
+  const card = document.getElementById(elId);
+  if(!card) return;
+  const colors=['var(--sage)','var(--gold)','var(--clay)','var(--plum)'];
+  for(let i=0;i<24;i++){
+    const p=document.createElement('div');
+    p.className='confetti-piece';
+    p.style.left=Math.random()*100+'%';
+    p.style.background=colors[i%colors.length];
+    p.style.animationDelay=(Math.random()*0.3)+'s';
+    card.appendChild(p);
+    setTimeout(()=>p.remove(),2000);
+  }
+}
+
+function defaultData(){
+  return {
+    schedule: { logs: {}, restDays: {}, dayMatch: {} },
+    dsa: { topics: [
+      {name:'Arrays', sheetDone:0, sheetTotal:40, leetcode:0},
+      {name:'Binary Search', sheetDone:0, sheetTotal:32, leetcode:0},
+      {name:'Strings', sheetDone:0, sheetTotal:15, leetcode:0}
+    ], contests: [] },
+    dsaHistory: [],
+    fullstack: { projects:[] },
+    ml: { videosWatched:0, totalVideos:100 },
+    mlHistory: [],
+    smartTopics: [],
+    focus: '',
+    academics: { cgpaCurrent:8.51, cgpaTarget:8.6, sgpaTarget:'9.5+', attendance:'', subjects:['Theory of Computation','Operating Systems','Computer Networks','Python for Web Frameworks','Linux Programming'] },
+    health: { sleepHours:{}, workoutDone:{}, waterLiters:{}, periodDays:{}, screenTime:{}, screenLimit:2 },
+    finance: { entries: [], goal: {name:'', target:0, saved:0} },
+    career: { resumeVersion:0, ghCommits:0, liPosts:0, applications:[], networking:[], certifications:[], interviewLog:[] },
+    reviews: [],
+    reading: [],
+    lastVisit: null,
+    lastLeafCount: 0,
+    reason: ''
+  };
+}
+
+function normalize(d){
+  const def = defaultData();
+  if(!d.schedule.restDays) d.schedule.restDays = {};
+  if(!d.health.waterLiters) d.health.waterLiters = d.health.waterGlasses ? {} : {};
+  if(!d.health.periodDays) d.health.periodDays = {};
+  if(!d.health.screenTime) d.health.screenTime = {};
+  if(d.health.screenLimit===undefined) d.health.screenLimit = 2;
+  if(!d.finance || !d.finance.entries) d.finance = { entries: [] };
+  if(!d.academics.sgpaTarget) d.academics.sgpaTarget = '9.5+';
+  if(d.academics.cgpaCurrent===''||d.academics.cgpaCurrent===undefined) d.academics.cgpaCurrent = 8.51;
+  if(!d.academics.cgpaTarget) d.academics.cgpaTarget = 8.6;
+  if(d.academics.subjects && d.academics.subjects.includes('Departmental Elective II')){
+    d.academics.subjects = d.academics.subjects.map(s=>s==='Departmental Elective II'?'Python for Web Frameworks':s==='Departmental Elective III'?'Linux Programming':s);
+  }
+  const HISTORICAL_PERIODS = ['2026-01-16','2026-02-13','2026-03-15','2026-04-13','2026-05-11','2026-06-09'];
+  HISTORICAL_PERIODS.forEach(dt=>{
+    if(!d.health.periodDays[dt]) d.health.periodDays[dt] = {flow:'Medium', tiredness:'Medium'};
+  });
+  if(!d.schedule.dayMatch) d.schedule.dayMatch = {};
+  if(!d.dsa.contests) d.dsa.contests = [];
+  if(!d.finance.goal) d.finance.goal = {name:'', target:0, saved:0};
+  if(!d.career.networking) d.career.networking = [];
+  if(!d.career.certifications) d.career.certifications = [];
+  if(!d.career.interviewLog) d.career.interviewLog = [];
+  if(!d.reading) d.reading = [];
+  if(d.lastVisit===undefined) d.lastVisit = null;
+  if(d.lastLeafCount===undefined) d.lastLeafCount = 0;
+  if(d.reason===undefined) d.reason = '';
+  if(!d.smartTopics) d.smartTopics = [];
+  if(!d.dsaHistory) d.dsaHistory = [];
+  if(!d.mlHistory) d.mlHistory = [];
+  return d;
+}
+
+const SCHEDULE_BLOCKS = ['Woke on time (5:45)','Workout','Full stack (3-5pm)','Aptitude/Soft skills','Academics block','DSA (1hr)','ML (1hr)'];
+
+async function loadData(){
+  try{
+    const r = await window.storage.get(STORAGE_KEY);
+    data = normalize(r ? JSON.parse(r.value) : defaultData());
+  }catch(e){ data = defaultData(); }
+  computeGreetingOnce();
+  computeMilestoneOnce();
+  render();
+  saveData();
+  if(milestoneJustHit) setTimeout(()=>celebrateElement('milestoneMsg'), 300);
+}
+async function saveData(){
+  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(data)); showToast(); }catch(e){ console.error('save failed', e); }
+}
+function showToast(){
+  const t=document.getElementById('toast'); t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),900);
+}
+
+function nav(section){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.s===section));
+  document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active', s.id===section));
+  if(window.innerWidth<=768) toggleDrawer(false);
+}
+document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click', ()=>nav(b.dataset.s)));
+function toggleDrawer(force){
+  const sb=document.getElementById('sidebar'), ov=document.getElementById('overlay');
+  const open = force!==undefined ? force : !sb.classList.contains('open');
+  sb.classList.toggle('open', open); ov.classList.toggle('show', open);
+}
+
+function render(){
+  document.getElementById('todayStr').textContent = new Date().toDateString();
+  document.getElementById('focusText').value = data.focus || '';
+  document.getElementById('reasonText').value = data.reason || '';
+  document.getElementById('restToggle').checked = !!data.schedule.restDays[todayKey()];
+  const dm = data.schedule.dayMatch[todayKey()] || 3;
+  document.getElementById('dayMatchSlider').value = dm;
+  document.getElementById('dayMatchVal').textContent = dm;
+  document.getElementById('newExpDate').value = todayKey();
+  renderSchedule();
+  renderDsa();
+  renderProjects();
+  renderMl();
+  renderSmartTopics('fullstack','fsTopics');
+  renderSmartTopics('ml','mlTopics');
+  renderSmartTopics('aptitude','apTopics');
+  renderAcademics();
+  renderHealth();
+  renderPeriod();
+  renderScreenTime();
+  renderFinance();
+  renderCareer();
+  renderNetworking();
+  renderCerts();
+  renderInterviewLog();
+  renderDsaContests();
+  renderReading();
+  renderReviews();
+  renderAutoReport();
+  renderHome();
+}
+
+function saveFocus(){ data.focus = document.getElementById('focusText').value; saveData(); }
+function saveReason(){ data.reason = document.getElementById('reasonText').value; saveData(); }
+
+// ---- SCHEDULE ----
+function renderSchedule(){
+  const key = todayKey();
+  const log = data.schedule.logs[key] || {};
+  document.getElementById('scheduleCard').innerHTML = SCHEDULE_BLOCKS.map((b,i)=>`
+    <div class="row"><input type="checkbox" id="sb${i}" ${log[i]?'checked':''} onchange="toggleBlock(${i})"><label for="sb${i}">${b}</label></div>`).join('');
+}
+function toggleBlock(i){
+  const key = todayKey();
+  if(!data.schedule.logs[key]) data.schedule.logs[key] = {};
+  data.schedule.logs[key][i] = !data.schedule.logs[key][i];
+  saveData(); renderHome();
+}
+function toggleRest(){
+  const key = todayKey();
+  data.schedule.restDays[key] = document.getElementById('restToggle').checked;
+  saveData(); renderHome();
+}
+function setDayMatchLive(v){ document.getElementById('dayMatchVal').textContent = v; }
+function setDayMatch(v){ data.schedule.dayMatch[todayKey()] = Number(v); saveData(); }
+
+// ---- DSA ----
+function pushHistory(arr, value){
+  const key = todayKey();
+  if(arr.length && arr[arr.length-1].date===key) arr[arr.length-1].value = value;
+  else arr.push({date:key, value});
+}
+function renderDsa(){
+  const total = data.dsa.topics.reduce((s,t)=>s+t.sheetDone+t.leetcode,0);
+  document.getElementById('dsaSummary').textContent = `${total} problems solved toward your 350-500 goal.`;
+  document.getElementById('dsaCard').innerHTML = data.dsa.topics.map((t,i)=>`
+    <div class="row">
+      <label style="flex:0 0 130px;font-weight:500">${t.name}</label>
+      <span class="metric-sub">Sheet</span>
+      <input type="number" style="width:60px" value="${t.sheetDone}" onchange="updateTopic(${i},'sheetDone',this.value)"> / ${t.sheetTotal}
+      <span class="metric-sub">LeetCode</span>
+      <input type="number" style="width:60px" value="${t.leetcode}" onchange="updateTopic(${i},'leetcode',this.value)">
+      <button class="btn" style="margin-left:auto" onclick="removeTopic(${i})">Remove</button>
+    </div>`).join('');
+}
+function updateTopic(i,field,val){
+  data.dsa.topics[i][field]=Number(val)||0;
+  const total = data.dsa.topics.reduce((s,t)=>s+t.sheetDone+t.leetcode,0);
+  pushHistory(data.dsaHistory, total);
+  saveData(); renderDsa(); renderHome();
+}
+function addTopic(){
+  const name = document.getElementById('newTopicName').value.trim();
+  const total = Number(document.getElementById('newTopicTotal').value)||10;
+  if(!name) return;
+  data.dsa.topics.push({name, sheetDone:0, sheetTotal:total, leetcode:0});
+  document.getElementById('newTopicName').value=''; document.getElementById('newTopicTotal').value='';
+  saveData(); renderDsa();
+}
+function removeTopic(i){ data.dsa.topics.splice(i,1); saveData(); renderDsa(); renderHome(); }
+function addContest(){
+  const platform = document.getElementById('newContestPlatform').value.trim();
+  const rank = document.getElementById('newContestRank').value.trim();
+  if(!platform) return;
+  data.dsa.contests.unshift({date:todayKey(), platform, rank});
+  document.getElementById('newContestPlatform').value=''; document.getElementById('newContestRank').value='';
+  saveData(); renderDsaContests();
+}
+function removeContest(i){ data.dsa.contests.splice(i,1); saveData(); renderDsaContests(); }
+function renderDsaContests(){
+  document.getElementById('contestList').innerHTML = data.dsa.contests.map((c,i)=>`
+    <div class="row"><span class="metric-sub" style="flex:0 0 90px">${c.date}</span><label>${c.platform}${c.rank?` — ${c.rank}`:''}</label><button class="btn" onclick="removeContest(${i})">Remove</button></div>`).join('') || '<p class="metric-sub">No contests logged yet.</p>';
+}
+
+// ---- FULL STACK PROJECTS ----
+function renderProjects(){
+  document.getElementById('fsProjects').innerHTML = data.fullstack.projects.map((p,i)=>`
+    <div class="row">
+      <label>${p.name}${p.link?` — <a href="${p.link}" target="_blank">link</a>`:''}</label>
+      <select onchange="updateProjStatus(${i},this.value)">
+        <option ${p.status==='Planned'?'selected':''}>Planned</option>
+        <option ${p.status==='In progress'?'selected':''}>In progress</option>
+        <option ${p.status==='Deployed'?'selected':''}>Deployed</option>
+      </select>
+      <button class="btn" onclick="removeProject(${i})">Remove</button>
+    </div>`).join('') || '<p class="metric-sub">No projects yet.</p>';
+}
+function addProject(){
+  const name = document.getElementById('newProjName').value.trim();
+  const link = document.getElementById('newProjLink').value.trim();
+  if(!name) return;
+  data.fullstack.projects.push({name, link, status:'Planned'});
+  document.getElementById('newProjName').value=''; document.getElementById('newProjLink').value='';
+  saveData(); renderProjects();
+}
+function updateProjStatus(i,val){ data.fullstack.projects[i].status=val; saveData(); renderHome(); }
+function removeProject(i){ data.fullstack.projects.splice(i,1); saveData(); renderProjects(); }
+
+// ---- ML overall counter ----
+function renderMl(){
+  document.getElementById('mlCount').textContent = `${data.ml.videosWatched} / ${data.ml.totalVideos}`;
+  document.getElementById('mlBar').style.width = Math.min(100,(data.ml.videosWatched/data.ml.totalVideos*100)) + '%';
+}
+function mlAdjust(n){
+  data.ml.videosWatched = Math.max(0, Math.min(data.ml.totalVideos, data.ml.videosWatched+n));
+  pushHistory(data.mlHistory, data.ml.videosWatched);
+  saveData(); renderMl(); renderHome();
+}
+
+// ---- SMART TOPICS ----
+const TRACK_LABEL = {fullstack:'full stack web development', ml:'machine learning and data science', aptitude:'aptitude and soft skills for placements'};
+const FALLBACK_STAGES = [
+  {name:'Watch tutorial', days:1},
+  {name:'Study examples and decode code', days:1},
+  {name:'Take notes', days:1},
+  {name:'Write own code (50% mastery)', days:2}
+];
+
+async function estimateTopic(title, track){
+  try{
+    const prompt = `You are helping a student plan a self-study topic for placement prep. Topic: "${title}". Context: ${TRACK_LABEL[track]}. They study about 2 hours per day. Break the topic into exactly these 4 stages in this order: "Watch tutorial", "Study examples and decode code", "Take notes", "Write own code (50% mastery)". Estimate integer days (minimum 1) per stage based on the topic's real difficulty and scope. Also give 3 short, practical study tips specific to this topic, and one small creative mini-project idea (doable in 1-2 days, even if tiny) that would use this topic. Respond with ONLY valid JSON, no markdown, no explanation: {"stages":[{"name":"Watch tutorial","days":N},{"name":"Study examples and decode code","days":N},{"name":"Take notes","days":N},{"name":"Write own code (50% mastery)","days":N}],"tips":["tip1","tip2","tip3"],"miniProject":"short project idea"}`;
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:600, messages:[{role:'user', content:prompt}] })
+    });
+    const json = await res.json();
+    const text = json.content.map(c=>c.text||'').join('');
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    return {
+      stages: parsed.stages && parsed.stages.length ? parsed.stages : FALLBACK_STAGES,
+      tips: parsed.tips || [],
+      miniProject: parsed.miniProject || ''
+    };
+  }catch(e){ return { stages: FALLBACK_STAGES, tips: [], miniProject: '' }; }
+}
+
+async function addSmartTopic(track){
+  const inputId = track==='fullstack'?'fsNewTopic':track==='ml'?'mlNewTopic':'apNewTopic';
+  const input = document.getElementById(inputId);
+  const title = input.value.trim();
+  if(!title) return;
+  input.value='';
+  const containerId = track==='fullstack'?'fsTopics':track==='ml'?'mlTopics':'apTopics';
+  document.getElementById(containerId).insertAdjacentHTML('afterbegin', `<div class="card" id="loadingCard">Estimating a timeline for "${title}"...</div>`);
+  const result = await estimateTopic(title, track);
+  document.getElementById('loadingCard')?.remove();
+  const totalDays = result.stages.reduce((s,x)=>s+x.days,0);
+  const start = new Date();
+  const expected = new Date(start); expected.setDate(expected.getDate()+totalDays);
+  data.smartTopics.push({
+    id: Date.now(), track, title,
+    createdDate: todayKey(), expectedDate: expected.toISOString().slice(0,10),
+    totalDays, stages: result.stages.map(s=>({...s, done:false})),
+    tips: result.tips, miniProject: result.miniProject,
+    percent:0, percentLog:[], completedDate:null,
+    feedback: null, confidence: 0
+  });
+  saveData(); renderSmartTopics(track, containerId);
+}
+
+function downloadICS(dateStr, title){
+  const dt = dateStr.replace(/-/g,'');
+  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART;VALUE=DATE:${dt}\nSUMMARY:${title}\nEND:VEVENT\nEND:VCALENDAR`;
+  const blob = new Blob([ics], {type:'text/calendar'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = title.replace(/[^a-z0-9]/gi,'_') + '.ics';
+  a.click();
+}
+
+async function getProjectFeedback(track, topicId){
+  const t = data.smartTopics.find(x=>x.id===topicId);
+  const textEl = document.getElementById('fb-input-'+topicId);
+  const desc = textEl.value.trim();
+  if(!desc) return;
+  document.getElementById('fb-area-'+topicId).innerHTML = '<p class="metric-sub">Reviewing your work...</p>';
+  try{
+    const prompt = `You are reviewing a computer science student's small self-study project for their placement portfolio. Topic: "${t.title}". What they built/describe: "${desc}". Give a rating out of 10 and one specific, genuinely motivating sentence about what's good, plus one concrete tip to improve. Respond ONLY as JSON: {"rating": N, "sentence": "...", "tip": "..."}`;
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:300, messages:[{role:'user', content:prompt}] })
+    });
+    const json = await res.json();
+    const text = json.content.map(c=>c.text||'').join('');
+    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    t.feedback = { desc, rating: parsed.rating, sentence: parsed.sentence, tip: parsed.tip };
+  }catch(e){
+    t.feedback = { desc, rating: null, sentence: "Couldn't reach the reviewer right now — try again in a moment.", tip: '' };
+  }
+  saveData();
+  const cid = track==='fullstack'?'fsTopics':track==='ml'?'mlTopics':'apTopics';
+  renderSmartTopics(track, cid);
+}
+
+function topicCompletionMessage(t){
+  const created = new Date(t.createdDate), completed = new Date(t.completedDate);
+  const actualDays = Math.max(1, Math.round((completed-created)/(1000*60*60*24)) || 1);
+  const diff = t.totalDays - actualDays;
+  if(diff>=2) return {type:'celebrate', text:`Wow! Finished "${t.title}" in ${actualDays} days instead of the estimated ${t.totalDays} — that's a real pace, keep this energy.`};
+  if(diff===1) return {type:'celebrate', text:`Finished "${t.title}" a day early (${actualDays}/${t.totalDays} days). Solid work.`};
+  if(diff===0) return {type:'celebrate', text:`Right on schedule for "${t.title}" — ${actualDays}/${t.totalDays} days. Steady pace like this compounds.`};
+  return {type:'encourage', text:`Took ${actualDays} days instead of ${t.totalDays} for "${t.title}" — stay focused, understanding it well matters more than the clock.`};
+}
+
+function renderSmartTopics(track, containerId){
+  const topics = data.smartTopics.filter(t=>t.track===track);
+  const el = document.getElementById(containerId);
+  if(!topics.length){ el.innerHTML = '<p class="metric-sub">No topics added yet — type one above.</p>'; return; }
+  el.innerHTML = topics.map(t=>{
+    const idx = data.smartTopics.indexOf(t);
+    const stageHtml = t.stages.map((s,si)=>`
+      <div class="stage-item ${s.done?'done':''}">
+        <input type="checkbox" ${s.done?'checked':''} onchange="toggleStage(${idx},${si})">
+        ${s.name} <span style="margin-left:auto;color:var(--ink-soft)">${s.days}d</span>
+      </div>`).join('');
+    let msg = '';
+    if(t.completedDate){
+      const m = topicCompletionMessage(t);
+      msg = `<div class="${m.type==='celebrate'?'celebrate-msg':'encourage-msg'}">${m.type==='celebrate'?'🎉 ':''}${m.text}</div>`;
+    }
+    const tipsHtml = (t.tips && t.tips.length) ? `
+      <div style="margin-top:10px"><span class="metric-label">Study tips</span>
+      <ul style="margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--ink-soft)">${t.tips.map(tip=>`<li>${tip}</li>`).join('')}</ul></div>` : '';
+    const projectHtml = t.miniProject ? `
+      <div class="encourage-msg" style="margin-top:8px"><strong>Try building:</strong> ${t.miniProject}</div>` : '';
+    const feedbackHtml = t.feedback ? `
+      <div class="celebrate-msg" style="margin-top:8px">
+        ${t.feedback.rating?`<strong>${t.feedback.rating}/10</strong> — `:''}${t.feedback.sentence}
+        ${t.feedback.tip?`<div class="metric-sub" style="margin-top:4px">Tip: ${t.feedback.tip}</div>`:''}
+      </div>` : `
+      <div style="margin-top:10px" id="fb-area-${t.id}">
+        <span class="metric-label">Built something for this? Get feedback</span>
+        <textarea id="fb-input-${t.id}" rows="2" style="width:100%;margin-top:4px" placeholder="Describe or paste what you built..."></textarea>
+        <button class="btn" style="margin-top:6px" onclick="getProjectFeedback('${t.track}',${t.id})">Get rating & feedback</button>
+      </div>`;
+    const starsHtml = `<div style="margin-top:8px"><span class="metric-label">How confident do you feel explaining this?</span><div style="margin-top:4px">${[1,2,3,4,5].map(n=>`<span style="cursor:pointer;font-size:18px;color:${n<=t.confidence?'var(--gold)':'var(--border)'}" onclick="setConfidence(${idx},${n})">★</span>`).join('')}</div></div>`;
+    return `<div class="topic-card" id="topic-${t.id}">
+      <div class="topic-head">
+        <div><h3 style="font-size:16px">${t.title}</h3><span class="metric-sub">Expected by ${t.expectedDate} (${t.totalDays} days) <button class="btn" style="padding:2px 8px;font-size:11px" onclick="downloadICS('${t.expectedDate}','${t.title} due')">+Calendar</button></span></div>
+        <button class="btn" onclick="removeSmartTopic(${idx})">Remove</button>
+      </div>
+      <div class="stage-list">${stageHtml}</div>
+      ${tipsHtml}
+      ${projectHtml}
+      ${starsHtml}
+      <div class="between" style="margin-top:10px">
+        <span class="metric-sub">Today's progress</span>
+        <span class="num">${t.percent}%</span>
+      </div>
+      <input type="range" min="0" max="100" value="${t.percent}" style="width:100%" oninput="updateTopicPercentLive(${idx},this.value)" onchange="updateTopicPercent(${idx},this.value)">
+      <div class="bar-track"><div class="bar-fill" style="width:${t.percent}%"></div></div>
+      ${msg}
+      ${feedbackHtml}
+    </div>`;
+  }).join('');
+}
+function toggleStage(idx,si){
+  const t = data.smartTopics[idx];
+  t.stages[si].done = !t.stages[si].done;
+  saveData(); renderSmartTopics(t.track, t.track==='fullstack'?'fsTopics':t.track==='ml'?'mlTopics':'apTopics');
+}
+function setConfidence(idx,n){
+  const t = data.smartTopics[idx];
+  t.confidence = n;
+  saveData(); renderSmartTopics(t.track, t.track==='fullstack'?'fsTopics':t.track==='ml'?'mlTopics':'apTopics');
+}
+function updateTopicPercentLive(idx,val){
+  document.querySelector(`#topic-${data.smartTopics[idx].id} .num`).textContent = val+'%';
+}
+function updateTopicPercent(idx,val){
+  const t = data.smartTopics[idx];
+  const wasComplete = t.percent>=100;
+  t.percent = Number(val);
+  t.percentLog.push({date: todayKey(), percent: t.percent});
+  if(t.percent>=100 && !wasComplete){
+    t.completedDate = todayKey();
+    saveData();
+    renderSmartTopics(t.track, t.track==='fullstack'?'fsTopics':t.track==='ml'?'mlTopics':'apTopics');
+    const m = topicCompletionMessage(t);
+    if(m.type==='celebrate') celebrate(t);
+    return;
+  }
+  saveData();
+  renderSmartTopics(t.track, t.track==='fullstack'?'fsTopics':t.track==='ml'?'mlTopics':'apTopics');
+}
+function celebrate(t){
+  const card = document.getElementById('topic-'+t.id);
+  if(!card) return;
+  const colors=['var(--sage)','var(--gold)','var(--clay)','var(--plum)'];
+  for(let i=0;i<24;i++){
+    const p=document.createElement('div');
+    p.className='confetti-piece';
+    p.style.left=Math.random()*100+'%';
+    p.style.background=colors[i%colors.length];
+    p.style.animationDelay=(Math.random()*0.3)+'s';
+    card.appendChild(p);
+    setTimeout(()=>p.remove(),2000);
+  }
+}
+function removeSmartTopic(idx){
+  const t = data.smartTopics[idx];
+  const track=t.track, cid = track==='fullstack'?'fsTopics':track==='ml'?'mlTopics':'apTopics';
+  data.smartTopics.splice(idx,1);
+  saveData(); renderSmartTopics(track,cid);
+}
+function addReading(){
+  const title = document.getElementById('newReadTitle').value.trim();
+  const note = document.getElementById('newReadNote').value.trim();
+  if(!title) return;
+  data.reading.unshift({date:todayKey(), title, note});
+  document.getElementById('newReadTitle').value=''; document.getElementById('newReadNote').value='';
+  saveData(); renderReading();
+}
+function removeReading(i){ data.reading.splice(i,1); saveData(); renderReading(); }
+function renderReading(){
+  document.getElementById('readingList').innerHTML = data.reading.map((r,i)=>`
+    <div class="row"><span class="metric-sub" style="flex:0 0 90px">${r.date}</span><label>${r.title}${r.note?` — ${r.note}`:''}</label><button class="btn" onclick="removeReading(${i})">Remove</button></div>`).join('') || '<p class="metric-sub">Nothing logged yet.</p>';
+}
+
+// ---- ACADEMICS ----
+function renderAcademics(){
+  document.getElementById('cgpaCurrent').value = data.academics.cgpaCurrent;
+  document.getElementById('cgpaTarget').value = data.academics.cgpaTarget;
+  document.getElementById('sgpaTarget').value = data.academics.sgpaTarget;
+  document.getElementById('attendance').value = data.academics.attendance;
+  document.getElementById('subjectsList').innerHTML = data.academics.subjects.map(s=>`<span class="pill sage" style="margin:3px;display:inline-block">${s}</span>`).join('');
+}
+function saveAcademics(){
+  data.academics.cgpaCurrent = document.getElementById('cgpaCurrent').value;
+  data.academics.cgpaTarget = document.getElementById('cgpaTarget').value;
+  data.academics.sgpaTarget = document.getElementById('sgpaTarget').value;
+  data.academics.attendance = document.getElementById('attendance').value;
+  saveData(); renderHome();
+}
+
+// ---- HEALTH ----
+function waterMessage(liters){
+  if(liters>=4) return {type:'celebrate', text:`${liters}L — excellent hydration! Your focus and energy will thank you today.`};
+  if(liters>0 && liters<2.5) return {type:'encourage', text:`${liters}L is a bit low — try adding one more glass through the afternoon.`};
+  if(liters===0) return '';
+  return {type:'celebrate', text:`${liters}L — steady and healthy, keep this up.`};
+}
+function renderHealth(){
+  const key = todayKey();
+  document.getElementById('healthCard').innerHTML = `
+    <div class="row"><label>Slept 7+ hours last night</label><input type="checkbox" ${data.health.sleepHours[key]?'checked':''} onchange="toggleHealth('sleepHours','${key}')"></div>
+    <div class="row"><label>Workout done today</label><input type="checkbox" ${data.health.workoutDone[key]?'checked':''} onchange="toggleHealth('workoutDone','${key}')"></div>
+    <div class="row"><label>Water — liters today</label><input type="number" step="0.1" style="width:80px" value="${data.health.waterLiters[key]||0}" onchange="setWater('${key}',this.value)"></div>`;
+  const l = data.health.waterLiters[key]||0;
+  const m = waterMessage(l);
+  document.getElementById('waterMsg').innerHTML = m ? `<div class="${m.type==='celebrate'?'celebrate-msg':'encourage-msg'}">${m.text}</div>` : '';
+}
+function toggleHealth(field,key){ data.health[field][key] = !data.health[field][key]; saveData(); renderHealth(); renderHome(); }
+function setWater(key,val){ data.health.waterLiters[key]=Number(val)||0; saveData(); renderHealth(); }
+
+// ---- MENSTRUAL CYCLE ----
+function getPeriodBlocks(){
+  const dates = Object.keys(data.health.periodDays).sort();
+  const blocks = [];
+  let current = [];
+  for(const d of dates){
+    if(!current.length){ current.push(d); continue; }
+    const prev = new Date(current[current.length-1]);
+    const cur = new Date(d);
+    if((cur-prev)/(1000*60*60*24) <= 2) current.push(d);
+    else { blocks.push(current); current=[d]; }
+  }
+  if(current.length) blocks.push(current);
+  return blocks;
+}
+function predictNextPeriod(){
+  const blocks = getPeriodBlocks();
+  if(!blocks.length) return null;
+  const starts = blocks.map(b=>b[0]);
+  let avgGap = 28;
+  if(starts.length>=2){
+    const gaps = [];
+    for(let i=1;i<starts.length;i++) gaps.push((new Date(starts[i])-new Date(starts[i-1]))/(1000*60*60*24));
+    avgGap = Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length);
+  }
+  const last = new Date(starts[starts.length-1]);
+  last.setDate(last.getDate()+avgGap);
+  return last.toISOString().slice(0,10);
+}
+function togglePeriodDay(){
+  const key = todayKey();
+  const checked = document.getElementById('periodToggle').checked;
+  if(checked){ if(!data.health.periodDays[key]) data.health.periodDays[key] = {flow:'Medium', tiredness:'Medium'}; }
+  else { delete data.health.periodDays[key]; }
+  saveData(); renderPeriod(); renderHome();
+}
+function setPeriodField(field,val){
+  const key = todayKey();
+  if(!data.health.periodDays[key]) data.health.periodDays[key] = {flow:'Medium', tiredness:'Medium'};
+  data.health.periodDays[key][field] = val;
+  saveData();
+}
+function renderPeriod(){
+  const key = todayKey();
+  const active = !!data.health.periodDays[key];
+  const next = predictNextPeriod();
+  const blocks = getPeriodBlocks();
+  const lastStart = blocks.length ? blocks[blocks.length-1][0] : null;
+  const cycleDay = lastStart ? Math.floor((new Date(key)-new Date(lastStart))/(1000*60*60*24))+1 : null;
+  document.getElementById('periodCard').innerHTML = `
+    <div class="row"><label>Period day today</label><input type="checkbox" id="periodToggle" ${active?'checked':''} onchange="togglePeriodDay()"></div>
+    ${active?`
+    <div class="row"><label>Flow</label><select onchange="setPeriodField('flow',this.value)">
+      <option ${data.health.periodDays[key].flow==='Light'?'selected':''}>Light</option>
+      <option ${data.health.periodDays[key].flow==='Medium'?'selected':''}>Medium</option>
+      <option ${data.health.periodDays[key].flow==='Heavy'?'selected':''}>Heavy</option>
+    </select></div>
+    <div class="row"><label>Tiredness</label><select onchange="setPeriodField('tiredness',this.value)">
+      <option ${data.health.periodDays[key].tiredness==='Low'?'selected':''}>Low</option>
+      <option ${data.health.periodDays[key].tiredness==='Medium'?'selected':''}>Medium</option>
+      <option ${data.health.periodDays[key].tiredness==='High'?'selected':''}>High</option>
+    </select></div>
+    <div class="encourage-msg">Period days are automatically treated like rest days — your streak won't break today.</div>`:''}
+    <p class="metric-sub" style="margin-top:8px">${cycleDay?`Cycle day ${cycleDay}. `:''}${next?`Predicted next period: ${next} <button class="btn" style="padding:2px 8px;font-size:11px" onclick="downloadICS('${next}','Predicted period')">+Calendar</button>`:'Log a few cycles to get a prediction.'}</p>
+  `;
+}
+
+// ---- SCREEN TIME ----
+function screenMessage(nonProd, limit){
+  if(nonProd<=limit) return {type:'celebrate', text:`Nice — ${nonProd}h non-productive screen time, within your ${limit}h limit.`};
+  return {type:'encourage', text:`${nonProd}h is a bit over your ${limit}h limit — no big deal, just try to notice it tomorrow.`};
+}
+function setScreenTime(field,val){
+  const key = todayKey();
+  if(!data.health.screenTime[key]) data.health.screenTime[key] = {productive:0, nonProductive:0};
+  data.health.screenTime[key][field] = Number(val)||0;
+  saveData(); renderScreenTime();
+}
+function setScreenLimit(val){ data.health.screenLimit = Number(val)||2; saveData(); renderScreenTime(); }
+function renderScreenTime(){
+  const key = todayKey();
+  const t = data.health.screenTime[key] || {productive:0, nonProductive:0};
+  document.getElementById('screenCard').innerHTML = `
+    <div class="row"><label>Productive (coding/learning) hours</label><input type="number" step="0.5" style="width:80px" value="${t.productive}" onchange="setScreenTime('productive',this.value)"></div>
+    <div class="row"><label>Non-productive hours</label><input type="number" step="0.5" style="width:80px" value="${t.nonProductive}" onchange="setScreenTime('nonProductive',this.value)"></div>
+    <div class="row" style="border-bottom:none"><label>Daily non-productive limit</label><input type="number" step="0.5" style="width:80px" value="${data.health.screenLimit}" onchange="setScreenLimit(this.value)"></div>
+  `;
+  const msg = t.nonProductive>0 ? screenMessage(t.nonProductive, data.health.screenLimit) : null;
+  document.getElementById('screenMsg').innerHTML = msg ? `<div class="${msg.type==='celebrate'?'celebrate-msg':'encourage-msg'}">${msg.text}</div>` : '';
+}
+
+// ---- FINANCE ----
+function addExpense(){
+  const date = document.getElementById('newExpDate').value || todayKey();
+  const desc = document.getElementById('newExpDesc').value.trim();
+  const amt = Number(document.getElementById('newExpAmt').value)||0;
+  if(!desc || !amt) return;
+  data.finance.entries.push({date, desc, amt});
+  document.getElementById('newExpDesc').value=''; document.getElementById('newExpAmt').value='';
+  saveData(); renderFinance(); renderHome();
+}
+function removeExpense(i){ data.finance.entries.splice(i,1); saveData(); renderFinance(); renderHome(); }
+function renderFinance(){
+  const entries = [...data.finance.entries].sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('financeList').innerHTML = entries.map(e=>{
+    const i = data.finance.entries.indexOf(e);
+    return `<div class="row"><span class="metric-sub" style="flex:0 0 90px">${e.date}</span><label>${e.desc}</label><span class="num">₹${e.amt}</span><button class="btn" onclick="removeExpense(${i})">Remove</button></div>`;
+  }).join('') || '<p class="metric-sub">No expenses logged yet.</p>';
+  const total = data.finance.entries.filter(e=>e.date.startsWith(monthKey())).reduce((s,e)=>s+e.amt,0);
+  document.getElementById('financeMonthTotal').textContent = `₹${total} / ₹1500`;
+  document.getElementById('goalName').value = data.finance.goal.name;
+  document.getElementById('goalTarget').value = data.finance.goal.target||'';
+  document.getElementById('goalSaved').value = data.finance.goal.saved||'';
+  const pct = data.finance.goal.target ? Math.min(100, Math.round(data.finance.goal.saved/data.finance.goal.target*100)) : 0;
+  document.getElementById('goalProgress').innerHTML = data.finance.goal.target ? `
+    <div class="between"><span class="metric-sub">${data.finance.goal.name||'Goal'}</span><span class="num">${pct}%</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>` : '<p class="metric-sub">Set a goal above to track it.</p>';
+}
+function saveGoal(){
+  data.finance.goal = {
+    name: document.getElementById('goalName').value.trim(),
+    target: Number(document.getElementById('goalTarget').value)||0,
+    saved: Number(document.getElementById('goalSaved').value)||0
+  };
+  saveData(); renderFinance();
+}
+
+// ---- CAREER ----
+function renderCareer(){
+  document.getElementById('resumeVersion').value = data.career.resumeVersion;
+  document.getElementById('ghCommits').value = data.career.ghCommits;
+  document.getElementById('liPosts').value = data.career.liPosts;
+  document.getElementById('applicationsList').innerHTML = data.career.applications.map((a,i)=>{
+    const cls = a.status==='Offer'?'sage':a.status==='Rejected'?'clay':a.status==='Interview'?'gold':'plum';
+    return `<div class="row"><label>${a.company}</label><span class="pill ${cls}">${a.status}</span><button class="btn" onclick="removeApp(${i})">Remove</button></div>`;
+  }).join('') || '<p class="metric-sub">No applications logged yet.</p>';
+}
+function addApplication(){
+  const company = document.getElementById('newAppCo').value.trim();
+  const status = document.getElementById('newAppStatus').value;
+  if(!company) return;
+  data.career.applications.push({company, status});
+  document.getElementById('newAppCo').value='';
+  saveData(); renderCareer();
+}
+function removeApp(i){ data.career.applications.splice(i,1); saveData(); renderCareer(); }
+function saveCareer(){
+  data.career.resumeVersion = Number(document.getElementById('resumeVersion').value)||0;
+  data.career.ghCommits = Number(document.getElementById('ghCommits').value)||0;
+  data.career.liPosts = Number(document.getElementById('liPosts').value)||0;
+  saveData(); renderHome();
+}
+function addNetworking(){
+  const person = document.getElementById('newNetPerson').value.trim();
+  const note = document.getElementById('newNetNote').value.trim();
+  if(!person) return;
+  data.career.networking.unshift({date:todayKey(), person, note});
+  document.getElementById('newNetPerson').value=''; document.getElementById('newNetNote').value='';
+  saveData(); renderNetworking();
+}
+function removeNetworking(i){ data.career.networking.splice(i,1); saveData(); renderNetworking(); }
+function renderNetworking(){
+  document.getElementById('networkingList').innerHTML = data.career.networking.map((n,i)=>`
+    <div class="row"><span class="metric-sub" style="flex:0 0 90px">${n.date}</span><label>${n.person}${n.note?` — ${n.note}`:''}</label><button class="btn" onclick="removeNetworking(${i})">Remove</button></div>`).join('') || '<p class="metric-sub">No entries yet.</p>';
+}
+function addCert(){
+  const name = document.getElementById('newCertName').value.trim();
+  if(!name) return;
+  data.career.certifications.unshift({date:todayKey(), name});
+  document.getElementById('newCertName').value='';
+  saveData(); renderCerts();
+}
+function removeCert(i){ data.career.certifications.splice(i,1); saveData(); renderCerts(); }
+function renderCerts(){
+  document.getElementById('certList').innerHTML = data.career.certifications.map((c,i)=>`
+    <div class="row"><span class="metric-sub" style="flex:0 0 90px">${c.date}</span><label>${c.name}</label><button class="btn" onclick="removeCert(${i})">Remove</button></div>`).join('') || '<p class="metric-sub">None logged yet.</p>';
+}
+function addInterview(){
+  const type = document.getElementById('newIntType').value.trim();
+  const note = document.getElementById('newIntNote').value.trim();
+  if(!type) return;
+  data.career.interviewLog.unshift({date:todayKey(), type, note});
+  document.getElementById('newIntType').value=''; document.getElementById('newIntNote').value='';
+  saveData(); renderInterviewLog();
+}
+function removeInterview(i){ data.career.interviewLog.splice(i,1); saveData(); renderInterviewLog(); }
+function renderInterviewLog(){
+  document.getElementById('interviewList').innerHTML = data.career.interviewLog.map((n,i)=>`
+    <div class="row"><span class="metric-sub" style="flex:0 0 90px">${n.date}</span><label>${n.type}${n.note?` — ${n.note}`:''}</label><button class="btn" onclick="removeInterview(${i})">Remove</button></div>`).join('') || '<p class="metric-sub">No practice logged yet.</p>';
+}
+
+// ---- WEEKLY REVIEW + AUTO REPORT ----
+function daysSince(dateStr){ return Math.floor((new Date(todayKey())-new Date(dateStr))/(1000*60*60*24)); }
+function addReview(){
+  const text = document.getElementById('reviewText').value.trim();
+  if(!text) return;
+  data.reviews.unshift({date: todayKey(), text});
+  document.getElementById('reviewText').value='';
+  saveData(); renderReviews(); renderReviewReminder();
+}
+function renderReviews(){
+  document.getElementById('reviewsList').innerHTML = data.reviews.slice(0,10).map(r=>`
+    <div class="card" style="margin-bottom:10px"><span class="metric-sub">${r.date}</span><p style="margin-top:6px">${r.text}</p></div>`).join('');
+}
+function renderReviewReminder(){
+  let msg = '';
+  if(!data.reviews.length){
+    msg = "You haven't added a weekly review yet — whenever you're ready, a few lines helps you spot patterns.";
+  } else {
+    const d = daysSince(data.reviews[0].date);
+    if(d>7) msg = `It's been ${d} days since your last review — take a few minutes to reflect on this week.`;
+  }
+  const html = msg ? `<div class="reminder-banner">${msg}</div>` : '';
+  document.getElementById('reviewReminder').innerHTML = html;
+  document.getElementById('homeReminder').innerHTML = msg ? `<div class="reminder-banner">${msg}</div>` : '';
+}
+function renderAutoReport(){
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+  const weekAgoStr = weekAgo.toISOString().slice(0,10);
+  const dsaThisWeek = data.dsaHistory.filter(h=>h.date>=weekAgoStr);
+  const dsaGain = dsaThisWeek.length>1 ? dsaThisWeek[dsaThisWeek.length-1].value - dsaThisWeek[0].value : (dsaThisWeek[0]?.value||0);
+  const mlThisWeek = data.mlHistory.filter(h=>h.date>=weekAgoStr);
+  const mlGain = mlThisWeek.length>1 ? mlThisWeek[mlThisWeek.length-1].value - mlThisWeek[0].value : (mlThisWeek[0]?.value||0);
+  const completedThisWeek = data.smartTopics.filter(t=>t.completedDate && t.completedDate>=weekAgoStr).length;
+  let fullDays=0, restDays=0;
+  for(let i=0;i<7;i++){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const key = d.toISOString().slice(0,10);
+    if(data.schedule.restDays[key]){ restDays++; continue; }
+    const log = data.schedule.logs[key];
+    if(log && SCHEDULE_BLOCKS.every((_,idx)=>log[idx])) fullDays++;
+  }
+  const spentThisWeek = data.finance.entries.filter(e=>e.date>=weekAgoStr).reduce((s,e)=>s+e.amt,0);
+  const waterVals = Object.entries(data.health.waterLiters).filter(([k])=>k>=weekAgoStr).map(([,v])=>v);
+  const avgWater = waterVals.length ? (waterVals.reduce((a,b)=>a+b,0)/waterVals.length).toFixed(1) : '—';
+  const contestsThisWeek = data.dsa.contests.filter(c=>c.date>=weekAgoStr).length;
+  const netThisWeek = data.career.networking.filter(n=>n.date>=weekAgoStr).length;
+  const dayMatchVals = Object.entries(data.schedule.dayMatch).filter(([k])=>k>=weekAgoStr).map(([,v])=>v);
+  const avgMatch = dayMatchVals.length ? (dayMatchVals.reduce((a,b)=>a+b,0)/dayMatchVals.length).toFixed(1) : '—';
+
+  document.getElementById('autoReport').innerHTML = `
+    <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.9">
+      <li><strong>${fullDays}</strong> full schedule days this week (${restDays} marked rest)</li>
+      <li><strong>${dsaGain}</strong> DSA problems solved this week</li>
+      <li><strong>${mlGain}</strong> ML videos watched this week</li>
+      <li><strong>${completedThisWeek}</strong> topic(s) completed this week</li>
+      <li>Average water intake: <strong>${avgWater}L</strong>/day</li>
+      <li>Plan-match feeling: <strong>${avgMatch}/5</strong> average this week</li>
+      <li><strong>${contestsThisWeek}</strong> contest(s), <strong>${netThisWeek}</strong> networking touchpoint(s)</li>
+      <li>Spent <strong>₹${spentThisWeek}</strong> this week</li>
+    </ul>
+  `;
+}
+
+// ---- HOME ----
+function getStreakDays(){
+  let count=0;
+  for(let i=0;i<90;i++){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const key = d.toISOString().slice(0,10);
+    if(data.schedule.restDays[key] || data.health.periodDays[key]) continue;
+    const log = data.schedule.logs[key];
+    const fullDay = log && SCHEDULE_BLOCKS.every((_,idx)=>log[idx]);
+    if(fullDay) count++; else break;
+  }
+  return count;
+}
+function renderHome(){
+  const dsaTotal = data.dsa.topics.reduce((s,t)=>s+t.sheetDone+t.leetcode,0);
+  const mlPct = Math.round(data.ml.videosWatched/data.ml.totalVideos*100);
+  const streak = getStreakDays();
+  const totalSpent = data.finance.entries.filter(e=>e.date.startsWith(monthKey())).reduce((s,e)=>s+e.amt,0);
+  const deployedProjects = data.fullstack.projects.filter(p=>p.status==='Deployed').length;
+  const activeTopics = data.smartTopics.filter(t=>t.percent<100).length;
+
+  document.getElementById('homeMetrics').innerHTML = `
+    <div class="card accent-sage"><div class="metric-label">DSA problems solved</div><div class="metric-value num">${dsaTotal}</div><div class="metric-sub">toward 350-500 goal</div></div>
+    <div class="card accent-plum"><div class="metric-label">ML progress</div><div class="metric-value num">${mlPct}%</div><div class="bar-track"><div class="bar-fill" style="width:${mlPct}%;background:var(--plum)"></div></div></div>
+    <div class="card accent-clay"><div class="metric-label">Active topics</div><div class="metric-value num">${activeTopics}</div><div class="metric-sub">${deployedProjects} project(s) deployed</div></div>
+    <div class="card accent-gold"><div class="metric-label">Current streak</div><div class="metric-value num">${streak}d</div><div class="metric-sub">rest days don't break it</div></div>
+    <div class="card"><div class="metric-label">CGPA</div><div class="metric-value num">${data.academics.cgpaCurrent}</div><div class="metric-sub">target ${data.academics.cgpaTarget} · SGPA ${data.academics.sgpaTarget}</div></div>
+    <div class="card"><div class="metric-label">Budget spent</div><div class="metric-value num">₹${totalSpent}</div><div class="metric-sub">of ₹1500 this month</div></div>
+  `;
+
+  const cells = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const key = d.toISOString().slice(0,10);
+    const isRest = data.schedule.restDays[key];
+    const isPeriod = data.health.periodDays[key];
+    const log = data.schedule.logs[key] || {};
+    const doneCount = SCHEDULE_BLOCKS.reduce((s,_,idx)=>s+(log[idx]?1:0),0);
+    const pct = doneCount/SCHEDULE_BLOCKS.length;
+    let bg = 'var(--border)', label='';
+    if(isPeriod){ bg='var(--clay-bg)'; label='P'; }
+    else if(isRest){ bg='var(--gold-bg)'; label='R'; }
+    else if(pct>0.8) bg='var(--sage)';
+    else if(pct>0.4) bg='var(--sage-bg)';
+    cells.push(`<div class="hcell" style="background:${bg}" title="${key}">${label}</div>`);
+  }
+  document.getElementById('heatmap').innerHTML = cells.join('');
+  document.getElementById('streakLabel').textContent = `${streak}-day streak`;
+
+  const leaves = Math.min(6, Math.floor(streak/7));
+  let svg = `<line x1="150" y1="130" x2="150" y2="${130-leaves*15-20}" stroke="var(--sage-deep)" stroke-width="4"/>`;
+  for(let i=0;i<leaves;i++){
+    const y = 120 - i*20; const side = i%2===0 ? 1 : -1;
+    svg += `<ellipse cx="${150+side*22}" cy="${y}" rx="20" ry="10" fill="var(--sage)" transform="rotate(${side*25} ${150+side*22} ${y})"/>`;
+  }
+  svg += `<circle cx="150" cy="${130-leaves*15-20}" r="6" fill="var(--gold)"/>`;
+  document.getElementById('growthSvg').innerHTML = svg;
+
+  document.getElementById('greetingMsg').textContent = greetingMessage;
+  const msEl = document.getElementById('milestoneMsg');
+  msEl.style.position='relative'; msEl.style.overflow='hidden';
+  msEl.innerHTML = milestoneMessage ? `<div class="celebrate-msg">${milestoneMessage}</div>` : '';
+  renderReviewReminder();
+  drawCharts();
+}
+
+function drawCharts(){
+  const dsaCtx = document.getElementById('dsaChart');
+  const mlCtx = document.getElementById('mlChart');
+  const dsaLabels = data.dsaHistory.map(h=>h.date);
+  const dsaValues = data.dsaHistory.map(h=>h.value);
+  const mlLabels = data.mlHistory.map(h=>h.date);
+  const mlValues = data.mlHistory.map(h=>h.value);
+  if(dsaChart) dsaChart.destroy();
+  if(mlChart) mlChart.destroy();
+  dsaChart = new Chart(dsaCtx, { type:'line', data:{ labels: dsaLabels.length?dsaLabels:['start'], datasets:[{data: dsaValues.length?dsaValues:[0], borderColor:'#6E8F72', backgroundColor:'rgba(110,143,114,0.1)', fill:true, tension:0.3}] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} } });
+  mlChart = new Chart(mlCtx, { type:'line', data:{ labels: mlLabels.length?mlLabels:['start'], datasets:[{data: mlValues.length?mlValues:[0], borderColor:'#5B4B66', backgroundColor:'rgba(91,75,102,0.1)', fill:true, tension:0.3}] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} } });
+}
+
+loadData();
+</script>
+</body>
+</html>
